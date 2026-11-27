@@ -61,7 +61,9 @@ void *consumer(void *arg) {
 
 int main() {
   pthread_t pid[NUM_OF_THREAD];
-
+  pthread_mutex_init(&mutex, NULL);
+  pthread_cond_init(&fill, NULL);
+  pthread_cond_init(&empty, NULL);
   for (int i = 0; i < 4; i++) {
     container *c = malloc(sizeof(container));
     *c = (container){i};
@@ -76,5 +78,9 @@ int main() {
     pthread_join(pid[i], (void **)&c);
     free(c);
   }
+
+  pthread_mutex_destroy(&mutex);
+  pthread_cond_destroy(&fill);
+  pthread_cond_destroy(&empty);
   return 0;
 }
