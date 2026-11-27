@@ -5,35 +5,39 @@
 
 #define CONS_IT 5
 #define NUM_OF_THREAD 4
+#define MAX_BUFF_SIZE 100
 
 pthread_cond_t fill, empty;
 pthread_mutex_t mutex;
-int buffer;
+int buffer[MAX_BUFF_SIZE];
 int count = 0;
+int fill_ptr = 0;
+int empty_ptr = 0;
 
 typedef struct __container {
   int tnum;
 } container;
 
 void put(int value) {
-  assert(count == 0);
-  buffer = value;
-  count = 1;
+  buffer[fill_ptr] = value;
+  fill_ptr = (fill_ptr + 1) % MAX_BUFF_SIZE;
+  count++;
 }
 
 int get() {
-  assert(count == 1);
-  count = 0;
-  return buffer;
+  int val = buffer[empty_ptr];
+  empty_ptr = (empty_ptr + 1) % MAX_BUFF_SIZE;
+  count--;
+  return val;
 }
 
 void *provider(void *arg) {
   container *c = (container *)arg;
   for (int i = 0; i < CONS_IT * (NUM_OF_THREAD - 1); i++) {
     pthread_mutex_lock(&mutex);
-    while (count == 1)
+    while (count == MAX_BUFF_SIZE)
       pthread_cond_wait(&empty, &mutex);
-    printf("putting %d in buffer from thread %d\n", i, c->tnum);
+    printf("putting value in buffer from thread %d => %d\n", c->tnum, i);
     put(i);
     pthread_cond_signal(&fill);
     pthread_mutex_unlock(&mutex);
@@ -48,7 +52,7 @@ void *consumer(void *arg) {
     while (count == 0)
       pthread_cond_wait(&fill, &mutex);
 
-    printf("got from producer: %d from thread %d\n", get(), c->tnum);
+    printf("got from producer value from thread %d => %d\n", c->tnum, get());
     pthread_cond_signal(&empty);
     pthread_mutex_unlock(&mutex);
   }
